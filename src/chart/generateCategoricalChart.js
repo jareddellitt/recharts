@@ -10,7 +10,7 @@ import Legend from '../component/Legend';
 
 import { warn } from '../util/LogUtils';
 import { findAllByType, findChildByType, getDisplayName,
-  validateWidthHeight } from '../util/ReactUtils';
+  validateWidthHeight, filterSvgElements } from '../util/ReactUtils';
 import _ from 'lodash';
 
 import CartesianAxis from '../cartesian/CartesianAxis';
@@ -42,7 +42,6 @@ const generateCategoricalChart = (ChartComponent, GraphicalChild) => {
       height: PropTypes.number,
       data: PropTypes.arrayOf(PropTypes.object),
       layout: PropTypes.oneOf(['horizontal', 'vertical']),
-      isAbove: PropTypes.bool,
       stackOffset: PropTypes.oneOf(['expand', 'none', 'wiggle', 'silhouette']),
       margin: PropTypes.shape({
         top: PropTypes.number,
@@ -62,7 +61,6 @@ const generateCategoricalChart = (ChartComponent, GraphicalChild) => {
       layout: 'horizontal',
       stackOffset: 'none',
       margin: { top: 5, right: 5, bottom: 5, left: 5 },
-      isAbove: false,
     };
 
     constructor(props) {
@@ -668,16 +666,14 @@ const generateCategoricalChart = (ChartComponent, GraphicalChild) => {
     }
 
     renderBrush(xAxisMap, yAxisMap, offset) {
-      const { children, data, margin } = this.props;
+      const { children, margin, data } = this.props;
       const brushItem = findChildByType(children, Brush);
 
       if (!brushItem) { return null; }
 
-      const dataKey = brushItem.props.dataKey;
-
       return React.cloneElement(brushItem, {
         onChange: this.handleBrushChange,
-        data: data.map(entry => entry[dataKey]),
+        data,
         x: offset.left,
         y: offset.top + offset.height + offset.brushBottom - (margin.bottom || 0),
         width: offset.width,
@@ -685,18 +681,13 @@ const generateCategoricalChart = (ChartComponent, GraphicalChild) => {
 
     }
 
-    renderReferenceLines(xAxisMap, yAxisMap, offset, isBeforeRender) {
-      const { children, isAbove } = this.props;
-
-      if (isAbove && !isBeforeRender || !isAbove && isBeforeRender) {
-        return null;
-      }
-
+    renderReferenceLines(xAxisMap, yAxisMap, offset, isFront) {
+      const { children } = this.props;
       const lines = findAllByType(children, ReferenceLine);
 
       if (!lines || !lines.length) { return null; }
 
-      return lines.map((entry, i) =>
+      return lines.filter(entry => (isFront === entry.props.isFront)).map((entry, i) =>
         React.cloneElement(entry, {
           key: `reference-line-${i}`,
           xAxisMap, yAxisMap,
@@ -710,18 +701,13 @@ const generateCategoricalChart = (ChartComponent, GraphicalChild) => {
       );
     }
 
-    renderReferenceDots(xAxisMap, yAxisMap, offset, isBeforeRender) {
-      const { children, isAbove } = this.props;
-
-      if (isAbove && !isBeforeRender || !isAbove && isBeforeRender) {
-        return null;
-      }
-
+    renderReferenceDots(xAxisMap, yAxisMap, offset, isFront) {
+      const { children } = this.props;
       const dots = findAllByType(children, ReferenceDot);
 
       if (!dots || !dots.length) { return null; }
 
-      return dots.map((entry, i) =>
+      return dots.filter(entry => (isFront === entry.props.isFront)).map((entry, i) =>
         React.cloneElement(entry, {
           key: `reference-dot-${i}`,
           xAxisMap, yAxisMap,
@@ -761,8 +747,8 @@ const generateCategoricalChart = (ChartComponent, GraphicalChild) => {
         >
           <Surface width={width} height={height}>
             {this.renderGrid(xAxisMap, yAxisMap, offset)}
-            {this.renderReferenceLines(xAxisMap, yAxisMap, offset, true)}
-            {this.renderReferenceDots(xAxisMap, yAxisMap, offset, true)}
+            {this.renderReferenceLines(xAxisMap, yAxisMap, offset, false)}
+            {this.renderReferenceDots(xAxisMap, yAxisMap, offset, false)}
             {this.renderAxes(xAxisMap, 'x-axis')}
             {this.renderAxes(yAxisMap, 'y-axis')}
             <ChartComponent
@@ -774,9 +760,10 @@ const generateCategoricalChart = (ChartComponent, GraphicalChild) => {
               offset={offset}
               stackGroups={stackGroups}
             />
-            {this.renderReferenceLines(xAxisMap, yAxisMap, offset, false)}
-            {this.renderReferenceDots(xAxisMap, yAxisMap, offset, false)}
+            {this.renderReferenceLines(xAxisMap, yAxisMap, offset, true)}
+            {this.renderReferenceDots(xAxisMap, yAxisMap, offset, true)}
             {this.renderBrush(xAxisMap, yAxisMap, offset)}
+            {filterSvgElements(children)}
           </Surface>
           {this.renderLegend(items)}
           {tooltipItem && this.renderTooltip(tooltipItem, items, offset)}
