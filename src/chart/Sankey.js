@@ -4,9 +4,11 @@
 import React, { Component, PropTypes } from 'react';
 import Surface from '../container/Surface';
 import Layer from '../container/Layer';
+import Tooltip from '../component/Tooltip';
 import Rectangle from '../shape/Rectangle';
 import classNames from 'classnames';
 import pureRender from '../util/PureRender';
+import { findChildByType, validateWidthHeight, filterSvgElements } from '../util/ReactUtils';
 import _ from 'lodash';
 
 const number = (a, b) => {
@@ -268,6 +270,12 @@ class Sankey extends Component {
     iterations: PropTypes.number,
     nodeContent: PropTypes.oneOfType([PropTypes.element, PropTypes.func]),
     linkContent: PropTypes.oneOfType([PropTypes.element, PropTypes.func]),
+    style: PropTypes.object,
+    className: PropTypes.string,
+    children: PropTypes.oneOfType([
+      PropTypes.arrayOf(PropTypes.node),
+      PropTypes.node,
+    ]),
   };
 
   static defaultProps = {
@@ -364,15 +372,29 @@ class Sankey extends Component {
   }
 
   render() {
-    const { data, iterations, width, height, nodeWidth, nodePadding } = this.props;
+    if (!validateWidthHeight(this)) { return null; }
+
+    const { data,
+      iterations, nodeWidth, nodePadding,
+      width, height,
+      className, style, children,
+    } = this.props;
     const size = [width, height];
     const { nodes, links } = computeData(
-      _.cloneDeep(data), size, iterations, nodeWidth, nodePadding);
+      _.cloneDeep(data), size, iterations, nodeWidth, nodePadding
+    );
+
     return (
-      <Surface width={width} height={height}>
-        {this.renderLinks(links)}
-        {this.renderNodes(nodes)}
-      </Surface>
+      <div
+        className={classNames('recharts-wrapper', className)}
+        style={{ position: 'relative', cursor: 'default', ...style }}
+      >
+        <Surface width={width} height={height}>
+          {filterSvgElements(children)}
+          {this.renderLinks(links)}
+          {this.renderNodes(nodes)}
+        </Surface>
+      </div>
     );
   }
 }

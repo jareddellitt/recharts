@@ -147,7 +147,8 @@ function SankeyDemo() {
   return (
     <div className="sankey-charts">
       <div>
-        <Sankey width={960} height={500} data={data0} />
+        <Sankey width={960} height={500} data={data0}>
+        </Sankey>
       </div>
       <br />
       <div>
@@ -160,7 +161,12 @@ function SankeyDemo() {
           linkContent={<DemoSankeyLink />}
           nodeContent={<DemoSankeyNode containerWidth={960} />}
         >
-          <Tooltip />
+          <defs>
+            <linearGradient id={'linkGradient'}>
+              <stop offset="0%" stopColor="rgba(0, 136, 254, 0.5)" />
+              <stop offset="100%" stopColor="rgba(0, 197, 159, 0.3)" />
+            </linearGradient>
+          </defs>
         </Sankey>
       </div>
     </div>
